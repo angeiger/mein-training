@@ -13,7 +13,11 @@ An Android app, in German, that walks someone over 60 through a gym workout:
 - **Muskeln**: front and back of a body; tap a muscle (or its name) to see what it does,
   where it helps in everyday life, and which exercises train it.
 - **Machine settings**: per machine, free-text values (seat height, weight, …), a note,
-  and a photo taken with the phone camera. They are shared by every plan.
+  and any number of **photos and videos**, each with a caption such as "Sitzposition"
+  or "So geht die Übung". Take them with the camera or pick several from the gallery.
+  In a workout they appear as a strip of thumbnails; tapping one opens it full screen,
+  where videos play on a loop with sound and a big "Anhalten" button. Settings are
+  shared by every plan.
 
 Everything is stored on the phone. The app needs no internet and no account, and has
 no ads. It requires **Android 8.0 or newer**.
@@ -22,7 +26,7 @@ no ads. It requires **Android 8.0 or newer**.
 
 ## Install it on her phone
 
-The finished app is `dist/mein-training.apk` (1.6 MB). It is not in the Play Store, so
+The finished app is `dist/mein-training.apk` (version 1.1.0, 1.7 MB). It is not in the Play Store, so
 it is installed by hand once. Allow about 10 minutes.
 
 ### 1. Copy the file to her phone
@@ -62,9 +66,10 @@ Her phone's wording differs slightly between brands; look for these phrases.
 1. Rename or delete the example plan (**Plan bearbeiten**), or create her own plans
    with **Neuen Plan anlegen**, e.g. "Tag A" and "Tag B".
 2. Add exercises with **Übung hinzufügen**: several can be ticked at once.
-3. At each machine, tap **Geräte-Einstellungen eintragen**, take a photo where the
-   seat/pin settings are visible, and type in the values. Only the first time; after
-   that they appear automatically in every workout.
+3. At each machine, tap **Geräte-Einstellungen eintragen**, take a photo of each
+   setting (seat, leg pad, …) and pick its name from the list the app offers, then type
+   in the values. A short **Video aufnehmen** of you doing the exercise is the best
+   reminder of all. Only the first time; after that they appear in every workout.
 4. Sets, repetitions and rest time are changed per exercise with **Ändern** in the plan.
    The defaults are 2 sets × 12 repetitions with 60 seconds rest.
 
@@ -88,6 +93,25 @@ Her phone's wording differs slightly between brands; look for these phrases.
 Never change `applicationId` (`de.meintraining.app`) or the database file name
 (`training.db`): either would install as a second, empty app.
 
+### What changed in 1.1.0
+
+- Several photos and videos per machine, each with a caption (was: one photo).
+- Butterfly: now the machine with hand grips and a foot lever. The animation walks
+  through the whole routine: press the lever, take the grips, release the lever, two
+  repetitions, and the same in reverse at the end. The foot lever is drawn in teal.
+- Lateral raise: now seated on a bench.
+
+Updating from 1.0.0 keeps everything: the one photo per machine moves into the new
+photo list automatically (tested by installing 1.1.0 over 1.0.0 with saved data).
+
+## Videos and storage
+
+Videos are copied into the app as they are, so a one-minute video from a modern phone
+can take 100 MB or more. Recording inside the app stops automatically after two
+minutes. Videos are **not** part of the automatic Google backup (it has a 25 MB limit
+per app, and going over it would stop plans and photos being backed up too); when
+moving to a new phone with the phone's own transfer tool, they do come along.
+
 ## Building
 
 - Gradle 8.9 (wrapper included) needs **JDK 21**, not newer. From a terminal:
@@ -107,7 +131,9 @@ Never change `applicationId` (`de.meintraining.app`) or the database file name
 | *"Unbekannte Apps … nicht erlaubt"* and no Einstellungen button | Some phones hide it | **Einstellungen → Apps → Dateien (or the browser) → Unbekannte Apps installieren → Zulassen** |
 | Play Protect blocks without "Trotzdem installieren" | Older Play Protect screen | Tap **OK**, then in Play Store → profile → **Play Protect** → gear icon → temporarily turn off *Apps mit Play Protect scannen*, install, turn it back on |
 | Gradle: *"Unsupported class file major version"* | Gradle running on a JDK newer than 21 | Set the Gradle JDK to 21 (see Building) |
-| *"Auf diesem Handy wurde keine Kamera-App gefunden"* | No camera app installed or it is disabled | Use **Bild aus der Galerie wählen** instead |
+| *"Auf diesem Handy wurde keine Kamera-App gefunden"* | No camera app installed or it is disabled | Use **Aus der Galerie wählen** instead |
+| A thumbnail says the photo/video is no longer on the phone | The file was not restored from a backup (videos never are) | Delete the entry in the editor and record it again |
+| Video stops recording by itself | The two-minute limit | Record several shorter videos |
 | No beep at the end of the rest | Phone on silent | Vibration still works; the beep follows the notification volume |
 
 ## How it is built
@@ -116,12 +142,16 @@ Kotlin, Jetpack Compose, Room. No network permission.
 
 - `figure/`: a small 3D stick-figure engine (inverse kinematics for arms and legs,
   orthographic camera, depth-sorted drawing) and `Motions.kt`, the movement and
-  equipment of every exercise. Pure Kotlin, also used by the `preview` module.
+  equipment of every exercise. Machines that need a set-up routine (the butterfly's
+  foot lever) use a `Script`: a loop of steps, each with its own caption. Pure Kotlin,
+  also used by the `preview` module; `gradlew.bat :preview:run --args="script butterfly"`
+  renders every step of such a loop.
 - `catalog/`: exercises (`Catalog.kt`) and muscle groups (`Muscle.kt`). Exercise ids are
   stored in the database; never rename one.
 - `musclemap/`: front/back body outline and muscle shapes, with hit-testing.
-- `data/`: Room database, repository, and the photo store (photos are shrunk to
-  1600 px and kept in app-private storage).
+- `data/`: Room database (schema history in `app/schemas`, migration 1→2 in
+  `Database.kt`), repository, and `MediaFiles` (photos are shrunk to 1600 px; videos
+  are kept as recorded, with a still frame as thumbnail; all in app-private storage).
 - `ui/`: screens. Workout state survives the app being closed in the background (e.g.
   while the camera is open); running timers do not.
 

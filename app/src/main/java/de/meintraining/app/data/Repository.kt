@@ -45,14 +45,24 @@ data class Plan(val id: Long, val name: String, val items: List<PlanItem>) {
 
 data class SettingValue(val label: String, val value: String)
 
+/** A photo or video of a machine. */
+data class MachineMedia(
+    val id: Long,
+    val path: String,
+    val isVideo: Boolean,
+    val caption: String,
+    /** Picture to show in lists: the photo itself, or a still from the video. */
+    val preview: String?,
+)
+
 data class MachineSettings(
-    val photoPath: String? = null,
+    val media: List<MachineMedia> = emptyList(),
     val note: String = "",
     val values: List<SettingValue> = emptyList(),
 ) {
     /** Values she actually filled in. */
     val filled: List<SettingValue> get() = values.filter { it.value.isNotBlank() }
-    val isEmpty: Boolean get() = photoPath == null && note.isBlank() && filled.isEmpty()
+    val isEmpty: Boolean get() = media.isEmpty() && note.isBlank() && filled.isEmpty()
 }
 
 /**
@@ -61,7 +71,7 @@ data class MachineSettings(
  */
 class Repository(
     private val db: AppDatabase,
-    private val photos: PhotoStore,
+    private val files: MediaFiles,
     private val scope: CoroutineScope,
 ) {
     private val planDao = db.plans()
@@ -87,15 +97,15 @@ class Repository(
     fun plan(id: Long): Flow<Plan?> = plans.map { list -> list.firstOrNull { it.id == id } }
 
     val settings: Flow<Map<String, MachineSettings>> =
-        combine(settingsDao.all(), settingsDao.allValues()) { settings, values ->
-            val grouped = values.groupBy { it.exerciseId }
-            val ids = settings.map { it.exerciseId } + grouped.keys
-            ids.toSet().associateWith { id ->
-                val s = settings.firstOrNull { it.exerciseId == id }
+        combine(settingsDao.all(), settingsDao.allValues(), settingsDao.allMedia()) { settings, values, media ->
+            val notes = settings.associate { it.exerciseId to it.note }
+            val valuesBy = values.groupBy { it.exerciseId }
+            val mediaBy = media.groupBy { it.exerciseId }
+            (notes.keys + valuesBy.keys + mediaBy.keys).associateWith { id ->
                 MachineSettings(
-                    photoPath = s?.photoPath,
-                    note = s?.note.orEmpty(),
-                    values = grouped[id].orEmpty().map { SettingValue(it.label, it.value) },
+                    media = mediaBy[id].orEmpty().map { it.toMedia() },
+                    note = notes[id].orEmpty(),
+                    values = valuesBy[id].orEmpty().map { SettingValue(it.label, it.value) },
                 )
             }
         }
@@ -149,8 +159,7 @@ class Repository(
     // ---- Machine settings -------------------------------------------------------------------
 
     fun saveSettings(exerciseId: String, note: String, values: List<SettingValue>) = scope.launch {
-        val current = settingsDao.get(exerciseId)
-        settingsDao.upsert(MachineSettingsEntity(exerciseId, current?.photoPath, note.trim()))
+        settingsDao.upsert(MachineSettingsEntity(exerciseId, note.trim()))
         settingsDao.replaceValues(
             exerciseId,
             values.filter { it.label.isNotBlank() }.mapIndexed { i, v ->
@@ -159,11 +168,36 @@ class Repository(
         )
     }
 
-    /** Stores a new photo for the machine and deletes the one it replaces. */
-    fun setPhoto(exerciseId: String, path: String?) = scope.launch {
-        val current = settingsDao.get(exerciseId)
-        if (current?.photoPath != null && current.photoPath != path) photos.delete(current.photoPath)
-        settingsDao.upsert(MachineSettingsEntity(exerciseId, path, current?.note.orEmpty()))
+    /** Adds an already stored photo or video at the end of the machine's list. Returns its id. */
+    suspend fun addMedia(exerciseId: String, stored: MediaFiles.Stored, caption: String = ""): Long =
+        settingsDao.insertMedia(
+            MediaEntity(
+                exerciseId = exerciseId,
+                path = stored.path,
+                type = if (stored.isVideo) MediaEntity.VIDEO else MediaEntity.PHOTO,
+                caption = caption.trim(),
+                position = settingsDao.maxMediaPosition(exerciseId) + 1,
+                thumbPath = stored.thumbPath,
+            ),
+        )
+
+    fun setCaption(mediaId: Long, caption: String) = scope.launch { settingsDao.setCaption(mediaId, caption.trim()) }
+
+    /** Moves a photo or video one place earlier (-1) or later (+1). */
+    fun moveMedia(exerciseId: String, mediaId: Long, direction: Int) = scope.launch {
+        val list = settingsDao.media(exerciseId).toMutableList()
+        val from = list.indexOfFirst { it.id == mediaId }
+        val to = from + direction
+        if (from < 0 || to !in list.indices) return@launch
+        list.add(to, list.removeAt(from))
+        settingsDao.updateMedia(list.mapIndexed { i, m -> m.copy(position = i) })
+    }
+
+    fun deleteMedia(mediaId: Long) = scope.launch {
+        val m = settingsDao.mediaItem(mediaId) ?: return@launch
+        settingsDao.deleteMedia(mediaId)
+        files.delete(m.path)
+        m.thumbPath?.let { files.delete(it) }
     }
 
     // ---- Her own exercises ----------------------------------------------------------------------
@@ -193,7 +227,11 @@ class Repository(
     fun deleteCustomExercise(exerciseId: String) = scope.launch {
         val id = exerciseId.removePrefix(CUSTOM_PREFIX).toLongOrNull() ?: return@launch
         planDao.deleteItemsFor(exerciseId)
-        settingsDao.get(exerciseId)?.photoPath?.let { photos.delete(it) }
+        for (m in settingsDao.media(exerciseId)) {
+            settingsDao.deleteMedia(m.id)
+            files.delete(m.path)
+            m.thumbPath?.let { files.delete(it) }
+        }
         settingsDao.delete(exerciseId)
         settingsDao.clearValues(exerciseId)
         customDao.delete(id)
@@ -209,6 +247,14 @@ class Repository(
         fun customId(id: Long) = "$CUSTOM_PREFIX$id"
     }
 }
+
+private fun MediaEntity.toMedia() = MachineMedia(
+    id = id,
+    path = path,
+    isVideo = type == MediaEntity.VIDEO,
+    caption = caption,
+    preview = if (type == MediaEntity.VIDEO) thumbPath else path,
+)
 
 private fun CustomExerciseEntity.toExercise(): Exercise {
     val kind = runCatching { Kind.valueOf(kind) }.getOrDefault(Kind.REPS)

@@ -62,7 +62,7 @@ fun ExerciseDetailScreen(
     exerciseId: String,
     onBack: () -> Unit,
     onEditSettings: () -> Unit,
-    onShowPhoto: () -> Unit,
+    onShowMedia: (Int) -> Unit,
 ) {
     val repo = rememberRepository()
     val all by repo.exercises.collectAsStateWithLifecycle()
@@ -103,11 +103,11 @@ fun ExerciseDetailScreen(
             exercise.tip?.let { TipCard(it) }
 
             SectionCard(title = "Meine Einstellungen") {
-                SettingsSummary(settings, onShowPhoto = onShowPhoto)
+                SettingsSummary(settings, onShowMedia = onShowMedia)
                 BigOutlinedButton(
                     if (settings.isEmpty) "Einstellungen eintragen" else "Einstellungen ändern",
                     onClick = onEditSettings,
-                    icon = if (settings.photoPath == null) Icons.Filled.PhotoCamera else Icons.Filled.Edit,
+                    icon = if (settings.media.isEmpty()) Icons.Filled.PhotoCamera else Icons.Filled.Edit,
                 )
             }
 

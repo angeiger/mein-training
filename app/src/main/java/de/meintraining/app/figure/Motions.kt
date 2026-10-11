@@ -236,35 +236,66 @@ object Motions {
             },
         ))
 
+        // Butterfly with hand grips and a foot lever. Pressing the lever swings the grips
+        // to the front, so the first repetition does not start with stretched shoulders.
+        // Script values: grip angle (88 = out to the side, 14 = in front of the chest),
+        // how far the lever is pressed (0..1), hands on the grips (0..1).
+        val fly = Script(
+            floatArrayOf(88f, 0f, 0f),
+            Script.step(700, "Fußhebel nach unten drücken – die Griffe kommen nach vorne", 88f, 0f, 0f),
+            Script.step(1400, "Fußhebel nach unten drücken – die Griffe kommen nach vorne", 14f, 1f, 0f),
+            Script.step(1000, "Griffe fassen", 14f, 1f, 1f),
+            Script.step(2000, "Fuß langsam lösen – die Arme gehen mit nach außen", 88f, 0f, 1f),
+            Script.step(1500, "Arme vor der Brust zusammenführen – ausatmen", 14f, 0f, 1f),
+            Script.step(300, "Arme vor der Brust zusammenführen – ausatmen", 14f, 0f, 1f),
+            Script.step(2000, "Langsam öffnen – einatmen", 88f, 0f, 1f),
+            Script.step(300, "Langsam öffnen – einatmen", 88f, 0f, 1f),
+            Script.step(1500, "Arme vor der Brust zusammenführen – ausatmen", 14f, 0f, 1f),
+            Script.step(300, "Arme vor der Brust zusammenführen – ausatmen", 14f, 0f, 1f),
+            Script.step(2000, "Langsam öffnen – einatmen", 88f, 0f, 1f),
+            Script.step(1500, "Zum Schluss: Fußhebel drücken", 14f, 1f, 1f),
+            Script.step(1000, "Griffe loslassen", 14f, 1f, 0f),
+            Script.step(1600, "Fuß langsam lösen", 88f, 0f, 0f),
+        )
+        val flyPelvis = v(0, SIT)
+        val flyShoulder = Body.shoulder(flyPelvis, -5f, R)
+        val leverPivot = v(-6, 22, 12)
+        fun flyGrip(angle: Float) = flyShoulder + v(cos(rad(angle)), -0.05f, sin(rad(angle))).normalized() * 54f
+        fun flyPedal(pressed: Float) = leverPivot + dirXY(lerp(14f, -20f, pressed)) * 44f
+
         put("butterfly", Motion(
-            camera = Camera(58f, 30f),
-            captions = "Arme zusammenführen – ausatmen" to "Langsam öffnen – einatmen",
-            pose = { p ->
-                val pelvis = v(0, SIT)
-                val s = Body.shoulder(pelvis, -5f, R)
-                val b = rad(lerp(86f, 16f, p))
-                val e = s + v(cos(b), -0.06f, sin(b)).normalized() * Body.UPPER_ARM
-                val h = e + v(0, Body.FOREARM - 1f, 0)
+            camera = Camera(68f, 32f),
+            timing = Timing.Loop(fly.totalMs),
+            captionAt = fly::caption,
+            thumbP = 0.34f,
+            pose = { t ->
+                val (angle, pressed, holding) = fly.at(t)
+                val hand = lerp(v(24, 71, 12), flyGrip(angle), holding)
+                val pole = lerp(v(-0.3, -1, 0.6), v(-0.5, -1, 0), holding)
                 Pose(
-                    pelvis = pelvis, pitch = -5f,
-                    hands = Limb(h, via = e).let { it to it.mirror() },
-                    feet = flat(40, 14),
+                    pelvis = flyPelvis, pitch = -5f,
+                    hands = pair(hand, pole),
+                    feet = twoSided(
+                        Limb(flyPedal(pressed) + v(-3, 7, 0), v(1, 0.4, 0.1)),
+                        Limb(v(40, Body.ANKLE_H, -14)),
+                    ),
+                    footAngle = -6f to null,
                 )
             },
-            props = { p, sk ->
+            props = { t, _ ->
+                val (angle, pressed, _) = fly.at(t)
+                val pedal = flyPedal(pressed)
                 buildList {
                     addAll(Props.seat(-2f, SEAT))
-                    addAll(Props.backrest(sk.pelvis, -5f, length = 64f))
-                    for (side in listOf(R, L)) {
-                        val e = if (side == R) sk.elbow.first else sk.elbow.second
-                        val h = if (side == R) sk.hand.first else sk.hand.second
-                        val s = if (side == R) sk.shoulder.first else sk.shoulder.second
-                        val arm = (e - s).normalized()
-                        val t = V3(arm.z * side, 0f, -arm.x * side).let { if (it.x < 0) -it else it }
-                        add(Cap(e + t * 6f, h + t * 6f, 10f, PAD, bias = 0.3f))
-                        add(Props.tube(h + t * 6f, v(s.x, 150, s.z), 4f, bias = -5f))
+                    addAll(Props.backrest(flyPelvis, -5f, length = 64f))
+                    for (side in listOf(1f, -1f)) {
+                        val g = flyGrip(angle).let { if (side > 0) it else it.mirror() }
+                        add(Props.grip(g))
+                        add(Props.tube(g + v(0, 6, 0), v(flyShoulder.x, 150, flyShoulder.z * side), 4f, bias = -5f))
                     }
-                    addAll(Props.stack(-60f, lift = p, top = 160f))
+                    add(Props.tube(leverPivot, pedal, 5f, Palette.CONTROL, bias = -1f))
+                    add(Cap(pedal + v(0, -1, 0), pedal + v(0, -1, 24), 8f, Palette.CONTROL, bias = -1f))
+                    addAll(Props.stack(-60f, lift = pressed * 0.6f, top = 160f))
                 }
             },
         ))
@@ -576,16 +607,24 @@ object Motions {
         ))
 
         put("seitheben", Motion(
-            camera = Camera(72f, 4f),
+            camera = Camera(70f, 8f),
             captions = "Arme seitlich heben – ausatmen" to "Langsam senken – einatmen",
             pose = { p ->
-                val pelvis = v(0, Body.STAND_H)
+                val pelvis = v(0, 57)
                 val s = Body.shoulder(pelvis, 0f, R)
                 val a = rad(lerp(-80f, -4f, p))
                 val h = s + v(0.18f, sin(a), cos(a)).normalized() * 56f
-                Pose(pelvis = pelvis, hands = pair(h, v(-1, 0.4, 0)), feet = flat(0, 13))
+                Pose(pelvis = pelvis, hands = pair(h, v(-1, 0.4, 0)), feet = flat(38, 20))
             },
-            props = { _, sk -> Props.dumbbell(sk.hand.first, V3.FWD) + Props.dumbbell(sk.hand.second, V3.FWD) },
+            props = { _, sk ->
+                buildList {
+                    add(Box(v(-34, 44, 0), v(110, 8, 30), PAD, bias = -30f))
+                    add(Props.tube(v(-80, 2, 0), v(-80, 40, 0), 6f, bias = -40f))
+                    add(Props.tube(v(10, 2, 0), v(10, 40, 0), 6f, bias = -40f))
+                    addAll(Props.dumbbell(sk.hand.first, V3.FWD))
+                    addAll(Props.dumbbell(sk.hand.second, V3.FWD))
+                }
+            },
         ))
 
         put("schulterdruecken_kh", Motion(

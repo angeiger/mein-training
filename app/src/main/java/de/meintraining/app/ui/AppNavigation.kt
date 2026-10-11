@@ -37,7 +37,7 @@ import de.meintraining.app.ui.screens.CustomExerciseScreen
 import de.meintraining.app.ui.screens.ExerciseDetailScreen
 import de.meintraining.app.ui.screens.ExercisePickerScreen
 import de.meintraining.app.ui.screens.MusclesScreen
-import de.meintraining.app.ui.screens.PhotoScreen
+import de.meintraining.app.ui.screens.MediaViewerScreen
 import de.meintraining.app.ui.screens.PlanEditScreen
 import de.meintraining.app.ui.screens.PlansScreen
 import de.meintraining.app.ui.screens.SettingsEditScreen
@@ -125,7 +125,7 @@ fun AppNavigation() {
                     exerciseId = id,
                     onBack = { nav.popBackStack() },
                     onEditSettings = { nav.navigate("einstellungen/$id") },
-                    onShowPhoto = { nav.navigate("foto/$id") },
+                    onShowMedia = { nav.navigate("medien/$id?start=$it") },
                 )
             }
             composable("einstellungen/{id}") {
@@ -133,18 +133,25 @@ fun AppNavigation() {
                 SettingsEditScreen(
                     exerciseId = id,
                     onBack = { nav.popBackStack() },
-                    onShowPhoto = { nav.navigate("foto/$id") },
+                    onShowMedia = { nav.navigate("medien/$id?start=$it") },
                 )
             }
-            composable("foto/{id}") {
-                PhotoScreen(exerciseId = it.arguments!!.getString("id")!!, onBack = { nav.popBackStack() })
+            composable(
+                "medien/{id}?start={start}",
+                listOf(navArgument("start") { type = NavType.IntType; defaultValue = 0 }),
+            ) {
+                MediaViewerScreen(
+                    exerciseId = it.arguments!!.getString("id")!!,
+                    start = it.arguments!!.getInt("start"),
+                    onBack = { nav.popBackStack() },
+                )
             }
             composable("workout/{planId}", listOf(navArgument("planId") { type = NavType.LongType })) {
                 WorkoutScreen(
                     planId = it.arguments!!.getLong("planId"),
                     onExit = { nav.popBackStack() },
                     onEditSettings = { id -> nav.navigate("einstellungen/$id") },
-                    onShowPhoto = { id -> nav.navigate("foto/$id") },
+                    onShowMedia = { id, index -> nav.navigate("medien/$id?start=$index") },
                 )
             }
         }

@@ -14,6 +14,7 @@ import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
@@ -48,13 +49,32 @@ data class PlanItemEntity(
     val restSeconds: Int,
 )
 
-/** Her notes for one machine. Shared by every plan that uses the exercise. */
+/** Her note for one machine. Shared by every plan that uses the exercise. */
 @Entity(tableName = "machine_settings")
 data class MachineSettingsEntity(
     @PrimaryKey val exerciseId: String,
-    val photoPath: String?,
     val note: String,
 )
+
+/** A photo or video of a machine, e.g. of the seat setting or a demonstration. */
+@Entity(tableName = "machine_media", indices = [Index("exerciseId")])
+data class MediaEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val exerciseId: String,
+    val path: String,
+    /** [MediaEntity.PHOTO] or [MediaEntity.VIDEO]. */
+    val type: String,
+    /** What it shows, e.g. "Sitzposition". May be empty. */
+    val caption: String,
+    val position: Int,
+    /** Still picture of a video, for lists. */
+    val thumbPath: String? = null,
+) {
+    companion object {
+        const val PHOTO = "PHOTO"
+        const val VIDEO = "VIDEO"
+    }
+}
 
 @Entity(tableName = "setting_values", indices = [Index("exerciseId")])
 data class SettingValueEntity(
@@ -145,6 +165,30 @@ interface SettingsDao {
         clearValues(id)
         insertValues(values)
     }
+
+    @Query("SELECT * FROM machine_media ORDER BY exerciseId, position, id")
+    fun allMedia(): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM machine_media WHERE exerciseId = :id ORDER BY position, id")
+    suspend fun media(id: String): List<MediaEntity>
+
+    @Query("SELECT * FROM machine_media WHERE id = :mediaId")
+    suspend fun mediaItem(mediaId: Long): MediaEntity?
+
+    @Query("SELECT COALESCE(MAX(position), -1) FROM machine_media WHERE exerciseId = :id")
+    suspend fun maxMediaPosition(id: String): Int
+
+    @Insert
+    suspend fun insertMedia(media: MediaEntity): Long
+
+    @Query("UPDATE machine_media SET caption = :caption WHERE id = :mediaId")
+    suspend fun setCaption(mediaId: Long, caption: String)
+
+    @Update
+    suspend fun updateMedia(media: List<MediaEntity>)
+
+    @Query("DELETE FROM machine_media WHERE id = :mediaId")
+    suspend fun deleteMedia(mediaId: Long)
 }
 
 @Dao
@@ -166,8 +210,9 @@ interface CustomExerciseDao {
         MachineSettingsEntity::class,
         SettingValueEntity::class,
         CustomExerciseEntity::class,
+        MediaEntity::class,
     ],
-    version = 1,
+    version = 2,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun plans(): PlanDao
@@ -178,7 +223,34 @@ abstract class AppDatabase : RoomDatabase() {
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "training.db")
                 .addCallback(SeedExamplePlan)
+                .addMigrations(MIGRATION_1_2)
                 .build()
+    }
+}
+
+/**
+ * Version 2 allows several photos and videos per machine. The single photo of
+ * version 1 moves into the new table, so nothing she already took is lost.
+ */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `machine_media` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`exerciseId` TEXT NOT NULL, `path` TEXT NOT NULL, `type` TEXT NOT NULL, `caption` TEXT NOT NULL, " +
+                "`position` INTEGER NOT NULL, `thumbPath` TEXT)",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_machine_media_exerciseId` ON `machine_media` (`exerciseId`)")
+        db.execSQL(
+            "INSERT INTO machine_media (exerciseId, path, type, caption, position) " +
+                "SELECT exerciseId, photoPath, 'PHOTO', '', 0 FROM machine_settings WHERE photoPath IS NOT NULL",
+        )
+        // SQLite cannot drop a column on older Android versions: rebuild the table.
+        db.execSQL(
+            "CREATE TABLE `machine_settings_new` (`exerciseId` TEXT NOT NULL, `note` TEXT NOT NULL, PRIMARY KEY(`exerciseId`))",
+        )
+        db.execSQL("INSERT INTO machine_settings_new (exerciseId, note) SELECT exerciseId, note FROM machine_settings")
+        db.execSQL("DROP TABLE machine_settings")
+        db.execSQL("ALTER TABLE machine_settings_new RENAME TO machine_settings")
     }
 }
 

@@ -27,6 +27,7 @@ import javax.imageio.ImageIO
  */
 fun main(args: Array<String>) {
     if (args.firstOrNull() == "debug") { debugSkeleton(args[1], args[2].toFloat()); return }
+    if (args.firstOrNull() == "script") { renderScript(args[1]); return }
     val set = args.toSet()
     if ("muscles" in set) renderMuscles()
     val ids = set - "muscles"
@@ -61,6 +62,32 @@ fun renderFigures(only: Set<String>?) {
         ImageIO.write(img, "png", File(name))
         println("wrote ${File(name).absolutePath}")
     }
+}
+
+/** Every step of a scripted loop, with the caption shown at that moment. */
+fun renderScript(id: String) {
+    val motion = Motions.all.getValue(id)
+    val ps = (0 until 16).map { (it + 0.5f) / 16f }
+    val tileW = 330
+    val tileH = 270
+    val cols = 4
+    val img = BufferedImage(tileW * cols, tileH * ((ps.size + cols - 1) / cols), BufferedImage.TYPE_INT_RGB)
+    val g = img.createGraphics()
+    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+    g.color = Color.WHITE
+    g.fillRect(0, 0, img.width, img.height)
+    val bounds = FigureRenderer.bounds(motion)
+    ps.forEachIndexed { i, p ->
+        val x = (i % cols) * tileW
+        val y = (i / cols) * tileH
+        drawShapes(g, FigureRenderer.frame(motion, p, setOf(Part.TORSO)), bounds, x, y + 10, tileW, tileH - 10)
+        g.color = Color.DARK_GRAY
+        g.font = Font("SansSerif", Font.PLAIN, 11)
+        g.drawString("%.2f %s".format(p, motion.caption(p * motion.timing.cycleMs)), x + 4, y + 14)
+    }
+    g.dispose()
+    ImageIO.write(img, "png", File("script-$id.png"))
+    println("wrote ${File("script-$id.png").absolutePath}")
 }
 
 fun renderMuscles() {

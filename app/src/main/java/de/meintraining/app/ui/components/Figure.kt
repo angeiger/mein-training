@@ -75,8 +75,8 @@ fun ExerciseAnimation(exercise: Exercise, modifier: Modifier = Modifier, height:
         animationSpec = infiniteRepeatable(tween(cycle, easing = LinearEasing)),
         label = "time",
     )
-    // Only the caption needs recomposing, and only when the phase changes.
-    val caption by remember(motion) { derivedStateOf { motion.caption(motion.timing.at(ms.value).second) } }
+    // Only the caption needs recomposing, and only when it changes.
+    val caption by remember(motion) { derivedStateOf { motion.caption(ms.value) } }
 
     Column(
         modifier

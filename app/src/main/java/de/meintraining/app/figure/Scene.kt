@@ -20,6 +20,8 @@ object Palette {
     const val FLOOR = 0xFFE4E0D8L
     const val MAT = 0xFF8FB7A6L
     const val WALL = 0xFFD9D4CBL
+    /** Controls she has to operate herself, such as a foot lever. */
+    const val CONTROL = 0xFF0E8C7EL
 }
 
 // ---- 3D primitives -------------------------------------------------------------
@@ -145,13 +147,65 @@ class Motion(
     val thumbP: Float = 1f,
     /** Floor shadow centre; null hides the floor (e.g. for exercises on a mat). */
     val floorX: Float? = 0f,
+    /** For a [Script]ed loop: the caption at progress t, overriding [captions]. */
+    val captionAt: ((Float) -> String)? = null,
     val pose: (Float) -> Pose,
     val props: (Float, Skeleton) -> List<Prim> = { _, _ -> emptyList() },
 ) {
-    fun caption(phase: Phase): String = when (phase) {
-        Phase.FORWARD -> captions.first
-        Phase.BACK -> captions.second
-        Phase.LOOP -> captions.first
+    /** The cue to show [ms] milliseconds into the cycle. */
+    fun caption(ms: Float): String {
+        val (p, phase) = timing.at(ms)
+        captionAt?.let { return it(p) }
+        return when (phase) {
+            Phase.FORWARD -> captions.first
+            Phase.BACK -> captions.second
+            Phase.LOOP -> captions.first
+        }
+    }
+}
+
+/**
+ * A choreographed loop for machines that need more than "there and back", such as
+ * setting the machine up before the first repetition. Each step moves a few values
+ * (angles, how far a pedal is pressed, …) to new targets and has its own caption.
+ */
+class Script(start: FloatArray, vararg steps: Step) {
+    class Step(val ms: Int, val caption: String, val to: FloatArray)
+
+    private val starts = ArrayList<FloatArray>()
+    private val steps = steps.toList()
+    val totalMs: Int = steps.sumOf { it.ms }
+
+    init {
+        var current = start
+        for (s in steps) {
+            starts += current
+            current = s.to
+        }
+    }
+
+    private fun index(t: Float): Pair<Int, Float> {
+        var ms = (((t % 1f) + 1f) % 1f) * totalMs
+        for ((i, s) in steps.withIndex()) {
+            if (ms < s.ms || i == steps.lastIndex) return i to (ms / s.ms).coerceIn(0f, 1f)
+            ms -= s.ms
+        }
+        return steps.lastIndex to 1f
+    }
+
+    /** Values at progress [t] (0..1 over the whole loop), eased within each step. */
+    fun at(t: Float): FloatArray {
+        val (i, f) = index(t)
+        val a = starts[i]
+        val b = steps[i].to
+        val e = ease(f)
+        return FloatArray(a.size) { lerp(a[it], b[it], e) }
+    }
+
+    fun caption(t: Float): String = steps[index(t).first].caption
+
+    companion object {
+        fun step(ms: Int, caption: String, vararg to: Float) = Step(ms, caption, to)
     }
 }
 

@@ -59,7 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -70,7 +69,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import de.meintraining.app.catalog.Kind
 import de.meintraining.app.data.MachineSettings
 import de.meintraining.app.data.PlanItem
@@ -78,6 +76,7 @@ import de.meintraining.app.ui.NoInsets
 import de.meintraining.app.ui.components.BigButton
 import de.meintraining.app.ui.components.ConfirmDialog
 import de.meintraining.app.ui.components.ExerciseAnimation
+import de.meintraining.app.ui.components.MediaStrip
 import de.meintraining.app.ui.components.SectionCard
 import de.meintraining.app.ui.theme.Accent
 import de.meintraining.app.ui.theme.Done
@@ -85,7 +84,6 @@ import de.meintraining.app.ui.theme.DoneLight
 import de.meintraining.app.ui.theme.Line
 import de.meintraining.app.ui.theme.Teal
 import de.meintraining.app.ui.theme.TealLight
-import java.io.File
 import kotlinx.coroutines.delay
 
 @Composable
@@ -93,7 +91,7 @@ fun WorkoutScreen(
     planId: Long,
     onExit: () -> Unit,
     onEditSettings: (String) -> Unit,
-    onShowPhoto: (String) -> Unit,
+    onShowMedia: (String, Int) -> Unit,
 ) {
     val vm: WorkoutViewModel = viewModel(factory = WorkoutViewModel.factory(planId))
     val plan by vm.plan.collectAsStateWithLifecycle()
@@ -183,7 +181,7 @@ fun WorkoutScreen(
                 MachineCard(
                     settings = settings[item.exercise.id] ?: MachineSettings(),
                     onEdit = { onEditSettings(item.exercise.id) },
-                    onShowPhoto = { onShowPhoto(item.exercise.id) },
+                    onShowMedia = { onShowMedia(item.exercise.id, it) },
                 )
                 // Sets before the animation: the rest timer at the bottom must not cover them.
                 if (item.exercise.kind == Kind.CARDIO) {
@@ -250,7 +248,7 @@ private fun ProgressBar(index: Int, total: Int, onClose: () -> Unit) {
 
 /** Photo and values of the machine, so she can set it up before starting. */
 @Composable
-private fun MachineCard(settings: MachineSettings, onEdit: () -> Unit, onShowPhoto: () -> Unit) {
+private fun MachineCard(settings: MachineSettings, onEdit: () -> Unit, onShowMedia: (Int) -> Unit) {
     if (settings.isEmpty) {
         OutlinedButton(
             onClick = onEdit,
@@ -277,30 +275,17 @@ private fun MachineCard(settings: MachineSettings, onEdit: () -> Unit, onShowPho
                 Text("Ändern", style = MaterialTheme.typography.labelLarge)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            settings.photoPath?.let { path ->
-                AsyncImage(
-                    model = File(path),
-                    contentDescription = "Foto vom Gerät, antippen zum Vergrößern",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(110.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color.Black)
-                        .clickable(onClick = onShowPhoto),
-                )
+        for (v in settings.filled) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(v.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(v.value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                for (v in settings.filled) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(v.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                        Text(v.value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    }
-                }
-                if (settings.note.isNotBlank()) {
-                    Text(settings.note, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 4.dp))
-                }
-            }
+        }
+        if (settings.note.isNotBlank()) {
+            Text(settings.note, style = MaterialTheme.typography.bodyLarge)
+        }
+        if (settings.media.isNotEmpty()) {
+            MediaStrip(settings.media, onOpen = onShowMedia, size = 96.dp, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older. Videos would exceed the 25 MB backup limit, after which
+     nothing at all is backed up; plans, settings and photos stay included. -->
+<full-backup-content>
+    <exclude domain="file" path="videos/" />
+</full-backup-content>
