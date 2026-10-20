@@ -97,7 +97,8 @@ Never change `applicationId` (`de.meintraining.app`) or the database file name
 
 - Fixed: a long setting value (e.g. "Schräger Metallgriff oder schwarzes Seil") made
   the settings card in a workout show a tall blank box.
-- New exercises: Stairmaster (warm-up) and Kettlebell Marches (core).
+- New exercises: Stairmaster (warm-up) and Kettlebell Marches (core: marching on the
+  spot with a weight plate in one hand, then the other).
 - New exercises start at 3 sets × 15 repetitions with 120 seconds rest. Exercises
   already in a plan keep their values.
 - After "Training beenden": a summary with the duration, the total weight moved

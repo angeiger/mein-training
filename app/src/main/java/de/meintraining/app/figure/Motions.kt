@@ -1001,38 +1001,74 @@ object Motions {
             },
         ))
 
-        // Marching on the spot with a kettlebell held in front of the chest.
-        put("kettlebell_march", Motion(
-            camera = Camera(30f, 8f),
-            timing = Timing.Loop(2600),
-            captions = "Knie abwechselnd heben – Bauch fest" to "Knie abwechselnd heben – Bauch fest",
-            thumbP = 0.25f,
-            pose = { t ->
-                fun lift(ph: Float): Float {
-                    val s = ((ph % 1f) + 1f) % 1f
-                    return if (s < 0.5f) sin(PI.toFloat() * s / 0.5f) else 0f
+        // Marching on the spot with a weight plate in one hand: a few knee lifts, the
+        // plate changes hands in front of the body, the same on the other side.
+        val marchMs = 4000f   // four knee lifts, alternating legs
+        val swapMs = 1600f
+        val marchTotal = 2 * (marchMs + swapMs)
+        fun marchCaption(t: Float): String {
+            val ms = t * marchTotal
+            return when {
+                ms < marchMs -> "Knie abwechselnd heben – Bauch fest"
+                ms < marchMs + swapMs -> "Scheibe in die andere Hand nehmen"
+                ms < 2 * marchMs + swapMs -> "Knie abwechselnd heben – Bauch fest"
+                else -> "Scheibe in die andere Hand nehmen"
+            }
+        }
+        /** Plate side (+1 = right hand), how far the hands have come together, knee lifts. */
+        fun marchState(t: Float): FloatArray {
+            val ms = ((t % 1f) + 1f) % 1f * marchTotal
+            fun lifts(local: Float): Pair<Float, Float> {
+                val s = (local % 2000f) / 2000f
+                return if (s < 0.5f) sin(PI.toFloat() * s * 2f) to 0f else 0f to sin(PI.toFloat() * (s - 0.5f) * 2f)
+            }
+            return when {
+                ms < marchMs -> lifts(ms).let { (r, l) -> floatArrayOf(1f, 0f, r, l) }
+                ms < marchMs + swapMs -> {
+                    val s = (ms - marchMs) / swapMs
+                    floatArrayOf(if (s < 0.5f) 1f else -1f, sin(PI.toFloat() * s), 0f, 0f)
                 }
-                val pelvis = v(0, Body.STAND_H)
-                val f = torsoFrame(-2f)
-                val chest = Body.chest(pelvis, -2f) + f.fwd * 10f + V3.DOWN * 6f
+                ms < 2 * marchMs + swapMs -> lifts(ms - marchMs - swapMs).let { (r, l) -> floatArrayOf(-1f, 0f, r, l) }
+                else -> {
+                    val s = (ms - 2 * marchMs - swapMs) / swapMs
+                    floatArrayOf(if (s < 0.5f) -1f else 1f, sin(PI.toFloat() * s), 0f, 0f)
+                }
+            }
+        }
+        val marchPelvis = v(0, Body.STAND_H)
+        fun marchHands(together: Float): Pair<Limb, Limb> {
+            val side = Body.shoulder(marchPelvis, 0f, R) + v(2, -57, 5)
+            val front = v(22, 86, 4)
+            val r = lerp(side, front, together)
+            return Limb(r, v(-0.6, -1, 0.4)) to Limb(r.mirror(), v(-0.6, -1, -0.4))
+        }
+
+        put("kettlebell_march", Motion(
+            camera = Camera(62f, 14f),
+            timing = Timing.Loop(marchTotal.toInt()),
+            captionAt = ::marchCaption,
+            thumbP = 0.06f,
+            pose = { t ->
+                val (_, together, liftR, liftL) = marchState(t)
                 Pose(
-                    pelvis = pelvis, pitch = -2f,
-                    hands = twoSided(
-                        Limb(chest + v(0, 0, 5), v(-0.2, -1, 1)),
-                        Limb(chest + v(0, 0, -5), v(-0.2, -1, -1)),
-                    ),
+                    pelvis = marchPelvis,
+                    hands = marchHands(together),
                     feet = twoSided(
-                        Limb(lerp(v(0, Body.ANKLE_H, 11), v(36, 50, 11), lift(t)), v(1, 0.2, 0.1)),
-                        Limb(lerp(v(0, Body.ANKLE_H, -11), v(36, 50, -11), lift(t + 0.5f)), v(1, 0.2, -0.1)),
+                        Limb(lerp(v(0, Body.ANKLE_H, 11), v(36, 50, 11), liftR), v(1, 0.2, 0.1)),
+                        Limb(lerp(v(0, Body.ANKLE_H, -11), v(36, 50, -11), liftL), v(1, 0.2, -0.1)),
                     ),
                 )
             },
-            props = { _, sk ->
-                val (hr, hl) = sk.hand
-                val mid = (hr + hl) * 0.5f
+            props = { t, sk ->
+                val side = marchState(t)[0]
+                val hand = if (side > 0) sk.hand.first else sk.hand.second
+                // Held by the rim, hanging below the hand beside the thigh. Turned towards
+                // the viewer a little, so it reads as a plate rather than a thin edge.
+                val c = hand + v(0, -11, 7 * side)
+                val facing = v(1, 0, 0.6f).normalized()
                 listOf(
-                    Cap(hr + v(0, 2, 0), hl + v(0, 2, 0), 3.5f, PLATE, bias = 0.8f),
-                    Ball(mid + v(3, -10, 0), 10f, PLATE, bias = 0.8f),
+                    Disc(c, facing, 13f, PLATE, bias = 0.8f),
+                    Disc(c + facing * 0.5f, facing, 3f, Palette.METAL, bias = 0.9f),
                 )
             },
         ))

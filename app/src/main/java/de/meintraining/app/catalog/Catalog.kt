@@ -343,16 +343,16 @@ object Catalog {
 
         // ---- Ohne Geräte -------------------------------------------------------------------------
         Exercise(
-            id = "kettlebell_march", name = "Kettlebell Marches", aka = "Marschieren mit Kettlebell", category = HANTELN,
-            primary = listOf(BAUCH, SEITL_BAUCH), secondary = listOf(QUADRIZEPS, UNTERARME),
+            id = "kettlebell_march", name = "Kettlebell Marches", aka = "Marschieren mit Gewichtsscheibe", category = HANTELN,
+            primary = listOf(SEITL_BAUCH, BAUCH), secondary = listOf(UNTERARME, QUADRIZEPS),
             steps = listOf(
-                "Stell dich aufrecht hin und halt die Kettlebell mit beiden Händen vor der Brust.",
-                "Spann den Bauch an, die Schultern bleiben locker unten.",
-                "Heb abwechselnd ein Knie bis etwa auf Hüfthöhe und setz den Fuß ruhig wieder ab.",
-                "Der Oberkörper bleibt aufrecht und still – nicht nach hinten lehnen.",
+                "Nimm eine Gewichtsscheibe in eine Hand und lass den Arm locker neben dem Körper hängen.",
+                "Stell dich aufrecht hin und spann den Bauch an. Die Schultern bleiben gerade – nicht zur Seite der Scheibe kippen.",
+                "Heb abwechselnd das rechte und das linke Knie bis etwa auf Hüfthöhe, 10 bis 15 Mal.",
+                "Nimm die Scheibe in die andere Hand und wiederhole das Ganze.",
             ),
-            tip = "Jedes Knieheben zählt als eine Wiederholung. Mit einer leichten Kettlebell beginnen und zum Festhalten neben eine Wand stellen.",
-            settings = listOf("Gewicht Kettlebell"),
+            tip = "Ein Satz bedeutet: einmal mit der Scheibe rechts, einmal links. Weil das Gewicht nur auf einer Seite ist, arbeiten vor allem die seitlichen Bauchmuskeln. Zum Festhalten neben eine Wand stellen.",
+            settings = listOf("Gewicht Scheibe"),
         ),
         Exercise(
             id = "kniebeuge", name = "Kniebeuge", aka = "Squat", category = OHNE,
