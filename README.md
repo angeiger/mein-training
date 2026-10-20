@@ -26,7 +26,7 @@ no ads. It requires **Android 8.0 or newer**.
 
 ## Install it on her phone
 
-The finished app is `dist/mein-training.apk` (version 1.1.0, 1.7 MB). It is not in the Play Store, so
+The finished app is `dist/mein-training.apk` (version 1.2.0, 1.7 MB). It is not in the Play Store, so
 it is installed by hand once. Allow about 10 minutes.
 
 ### 1. Copy the file to her phone
@@ -71,7 +71,7 @@ Her phone's wording differs slightly between brands; look for these phrases.
    in the values. A short **Video aufnehmen** of you doing the exercise is the best
    reminder of all. Only the first time; after that they appear in every workout.
 4. Sets, repetitions and rest time are changed per exercise with **Ändern** in the plan.
-   The defaults are 2 sets × 12 repetitions with 60 seconds rest.
+   The defaults are 3 sets × 15 repetitions with 120 seconds rest.
 
 ---
 
@@ -92,6 +92,17 @@ Her phone's wording differs slightly between brands; look for these phrases.
 
 Never change `applicationId` (`de.meintraining.app`) or the database file name
 (`training.db`): either would install as a second, empty app.
+
+### What changed in 1.2.0
+
+- Fixed: a long setting value (e.g. "Schräger Metallgriff oder schwarzes Seil") made
+  the settings card in a workout show a tall blank box.
+- New exercises: Stairmaster (warm-up) and Kettlebell Marches (core).
+- New exercises start at 3 sets × 15 repetitions with 120 seconds rest. Exercises
+  already in a plan keep their values.
+- After "Training beenden": a summary with the duration, the total weight moved
+  (sets × repetitions × the "Gewicht" setting; plate numbers like "Stufe 7" are not
+  counted), a short word of praise, and a body map of the muscles trained.
 
 ### What changed in 1.1.0
 

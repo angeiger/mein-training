@@ -21,7 +21,7 @@ data class PlanItem(
     val amount: Int,
     val restSeconds: Int,
 ) {
-    /** "2 × 12 Wdh." or "10 Min." */
+    /** "3 × 15 Wdh." or "10 Min." */
     val summary: String
         get() = if (exercise.kind == Kind.CARDIO) exercise.kind.amountShort(amount)
         else "$sets × ${exercise.kind.amountShort(amount)}"
@@ -134,7 +134,7 @@ class Repository(
                     position = start + i,
                     sets = e.sets,
                     amount = e.amount,
-                    restSeconds = 60,
+                    restSeconds = DEFAULT_REST,
                 )
             },
         )
@@ -216,7 +216,7 @@ class Repository(
                         position = planDao.maxItemPosition(planId) + 1,
                         sets = exercise.sets,
                         amount = exercise.amount,
-                        restSeconds = 60,
+                        restSeconds = DEFAULT_REST,
                     ),
                 ),
             )
@@ -244,6 +244,8 @@ class Repository(
 
     companion object {
         const val CUSTOM_PREFIX = "eigene-"
+        /** Rest after each set for newly added exercises, in seconds. */
+        const val DEFAULT_REST = 120
         fun customId(id: Long) = "$CUSTOM_PREFIX$id"
     }
 }

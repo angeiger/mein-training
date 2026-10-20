@@ -28,7 +28,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -78,6 +77,7 @@ import de.meintraining.app.ui.components.ConfirmDialog
 import de.meintraining.app.ui.components.ExerciseAnimation
 import de.meintraining.app.ui.components.MediaStrip
 import de.meintraining.app.ui.components.SectionCard
+import de.meintraining.app.ui.components.SettingValueRow
 import de.meintraining.app.ui.theme.Accent
 import de.meintraining.app.ui.theme.Done
 import de.meintraining.app.ui.theme.DoneLight
@@ -111,10 +111,8 @@ fun WorkoutScreen(
 
     val items = plan?.items ?: return
     if (finished || items.isEmpty()) {
-        Summary(
-            completed = items.count { isComplete(it, done) },
-            total = items.size,
-            minutes = vm.minutesSoFar(),
+        WorkoutSummary(
+            stats = workoutStats(items, done, settings, vm.minutesSoFar()),
             onClose = onExit,
         )
         return
@@ -276,10 +274,7 @@ private fun MachineCard(settings: MachineSettings, onEdit: () -> Unit, onShowMed
             }
         }
         for (v in settings.filled) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(v.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Text(v.value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
+            SettingValueRow(v.label, v.value, MaterialTheme.typography.titleLarge)
         }
         if (settings.note.isNotBlank()) {
             Text(settings.note, style = MaterialTheme.typography.bodyLarge)
@@ -467,41 +462,6 @@ private fun HowTo(item: PlanItem) {
                 Text("Wichtig: $it", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             }
         }
-    }
-}
-
-@Composable
-private fun Summary(completed: Int, total: Int, minutes: Int, onClose: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = Color(0xFFE0A100), modifier = Modifier.size(120.dp))
-        val all = total > 0 && completed == total
-        Text(
-            if (all) "Geschafft!" else "Training beendet",
-            style = MaterialTheme.typography.displaySmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-        Text(
-            if (all) "Super gemacht." else "Schön, dass du da warst.",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(24.dp))
-        Text(
-            if (total == 0) "Dieser Plan hat keine Übungen." else "$completed von $total Übungen erledigt",
-            style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center,
-        )
-        Text(if (minutes == 1) "Dauer: 1 Minute" else "Dauer: $minutes Minuten", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(32.dp))
-        BigButton("Fertig", onClick = onClose, icon = Icons.Filled.Check)
     }
 }
 

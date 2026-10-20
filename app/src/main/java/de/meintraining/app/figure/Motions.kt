@@ -961,6 +961,82 @@ object Motions {
             },
         ))
 
+        // Revolving stairs: the standing foot sinks with its step, the other one
+        // climbs to the next. Script-free: one loop per pair of steps.
+        put("stairmaster", Motion(
+            camera = Camera(28f, 8f),
+            timing = Timing.Loop(1600),
+            captions = "Gleichmäßig Stufe für Stufe steigen" to "Gleichmäßig Stufe für Stufe steigen",
+            thumbP = 0.2f,
+            pose = { t ->
+                fun ankle(ph: Float): V3 {
+                    val s = ((ph % 1f) + 1f) % 1f
+                    return if (s < 0.5f) {
+                        lerp(v(12, 50), v(-6, 26), s / 0.5f)
+                    } else {
+                        val q = (s - 0.5f) / 0.5f
+                        lerp(v(-6, 26), v(12, 50), ease(q)) + v(0f, 12f * sin(PI.toFloat() * q), 0f)
+                    }
+                }
+                val ar = ankle(t)
+                val al = ankle(t + 0.5f)
+                Pose(
+                    pelvis = v(-6, 112f + 1.5f * cos(4f * PI.toFloat() * t)), pitch = 6f,
+                    hands = pair(v(22, 104, 26), v(-0.4, -1, 0.4)),
+                    feet = twoSided(Limb(ar.copy(z = 11f), v(1, 0.3, 0.1)), Limb(al.copy(z = -11f), v(1, 0.3, -0.1))),
+                    footAngle = 0f to 0f,
+                )
+            },
+            props = { _, _ ->
+                buildList {
+                    add(Box(v(0, 4, 0), v(90, 8, 60), FRAME, bias = -60f))
+                    add(Box(v(12, 22, 0), v(26, 36, 46), PAD, bias = -50f))
+                    add(Box(v(-12, 10, 0), v(26, 12, 46), PAD, bias = -51f))
+                    for (z in listOf(-28, 28)) {
+                        add(Props.tube(v(36, 6, z), v(34, 104, z), 5f, bias = -10f))
+                        add(Props.tube(v(34, 104, z), v(-4, 104, z), 4.5f, bias = -10f))
+                    }
+                    add(Box(v(38, 118, 0), v(8, 16, 56), FRAME, pitch = -20f, bias = -10f))
+                }
+            },
+        ))
+
+        // Marching on the spot with a kettlebell held in front of the chest.
+        put("kettlebell_march", Motion(
+            camera = Camera(30f, 8f),
+            timing = Timing.Loop(2600),
+            captions = "Knie abwechselnd heben – Bauch fest" to "Knie abwechselnd heben – Bauch fest",
+            thumbP = 0.25f,
+            pose = { t ->
+                fun lift(ph: Float): Float {
+                    val s = ((ph % 1f) + 1f) % 1f
+                    return if (s < 0.5f) sin(PI.toFloat() * s / 0.5f) else 0f
+                }
+                val pelvis = v(0, Body.STAND_H)
+                val f = torsoFrame(-2f)
+                val chest = Body.chest(pelvis, -2f) + f.fwd * 10f + V3.DOWN * 6f
+                Pose(
+                    pelvis = pelvis, pitch = -2f,
+                    hands = twoSided(
+                        Limb(chest + v(0, 0, 5), v(-0.2, -1, 1)),
+                        Limb(chest + v(0, 0, -5), v(-0.2, -1, -1)),
+                    ),
+                    feet = twoSided(
+                        Limb(lerp(v(0, Body.ANKLE_H, 11), v(36, 50, 11), lift(t)), v(1, 0.2, 0.1)),
+                        Limb(lerp(v(0, Body.ANKLE_H, -11), v(36, 50, -11), lift(t + 0.5f)), v(1, 0.2, -0.1)),
+                    ),
+                )
+            },
+            props = { _, sk ->
+                val (hr, hl) = sk.hand
+                val mid = (hr + hl) * 0.5f
+                listOf(
+                    Cap(hr + v(0, 2, 0), hl + v(0, 2, 0), 3.5f, PLATE, bias = 0.8f),
+                    Ball(mid + v(3, -10, 0), 10f, PLATE, bias = 0.8f),
+                )
+            },
+        ))
+
         put("crosstrainer", Motion(
             camera = Camera(26f, 8f),
             timing = Timing.Loop(1600),

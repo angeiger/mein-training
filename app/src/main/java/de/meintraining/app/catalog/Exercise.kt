@@ -50,9 +50,9 @@ data class Exercise(
     val tip: String? = null,
     /** Machine settings worth writing down, offered as empty fields. */
     val settings: List<String> = emptyList(),
-    val sets: Int = if (kind == Kind.CARDIO) 1 else 2,
+    val sets: Int = if (kind == Kind.CARDIO) 1 else 3,
     val amount: Int = when (kind) {
-        Kind.REPS -> 12
+        Kind.REPS -> 15
         Kind.HOLD -> 20
         Kind.CARDIO -> 10
     },

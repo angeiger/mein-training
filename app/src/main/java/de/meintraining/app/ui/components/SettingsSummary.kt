@@ -1,5 +1,8 @@
 package de.meintraining.app.ui.components
 
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import de.meintraining.app.data.MachineSettings
 
@@ -41,8 +45,7 @@ fun SettingsSummary(
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(v.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Text(v.value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                SettingValueRow(v.label, v.value, MaterialTheme.typography.headlineSmall)
             }
         }
         if (settings.note.isNotBlank()) {
@@ -50,6 +53,31 @@ fun SettingsSummary(
         }
         if (settings.media.isNotEmpty()) {
             MediaStrip(settings.media, onOpen = onShowMedia, size = 120.dp, modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+}
+
+/**
+ * "Sitzhöhe ........ 4". The value may take at most a bit over half the width and wraps
+ * beyond that. Without the limit a long value ("Schräger Metallgriff oder schwarzes
+ * Seil") took the whole row, the label was squeezed to zero width, one letter per line,
+ * and the card showed a tall blank box.
+ */
+@Composable
+fun SettingValueRow(label: String, value: String, valueStyle: TextStyle, modifier: Modifier = Modifier) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val maxValue = maxWidth * 0.58f
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(
+                value,
+                style = valueStyle,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.End,
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .widthIn(max = maxValue),
+            )
         }
     }
 }

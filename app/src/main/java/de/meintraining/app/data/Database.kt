@@ -260,18 +260,18 @@ private object SeedExamplePlan : RoomDatabase.Callback() {
         db.execSQL("INSERT INTO plans (id, name, position) VALUES (1, 'Ganzkörper (Beispiel)', 0)")
         val items = listOf(
             Triple("fahrrad", 1, 10),
-            Triple("beinpresse", 2, 12),
-            Triple("brustpresse", 2, 12),
-            Triple("latzug", 2, 12),
-            Triple("rudern", 2, 12),
-            Triple("beinstrecker", 2, 12),
-            Triple("beinbeuger_sitzend", 2, 12),
-            Triple("rueckenstrecker", 2, 12),
-            Triple("bauchmaschine", 2, 12),
+            Triple("beinpresse", 3, 15),
+            Triple("brustpresse", 3, 15),
+            Triple("latzug", 3, 15),
+            Triple("rudern", 3, 15),
+            Triple("beinstrecker", 3, 15),
+            Triple("beinbeuger_sitzend", 3, 15),
+            Triple("rueckenstrecker", 3, 15),
+            Triple("bauchmaschine", 3, 15),
         )
         items.forEachIndexed { i, (id, sets, amount) ->
             db.execSQL(
-                "INSERT INTO plan_items (planId, exerciseId, position, sets, amount, restSeconds) VALUES (1, ?, ?, ?, ?, 60)",
+                "INSERT INTO plan_items (planId, exerciseId, position, sets, amount, restSeconds) VALUES (1, ?, ?, ?, ?, 120)",
                 arrayOf<Any>(id, i, sets, amount),
             )
         }

@@ -108,7 +108,7 @@ fun CustomExerciseScreen(planId: Long?, onBack: () -> Unit, onCreated: (String) 
                 modifier = Modifier.fillMaxWidth(),
             )
             SectionCard(title = "Wie wird gezählt?") {
-                KindOption("Wiederholungen", "z. B. 2 Sätze mit je 12 Wiederholungen", kind == Kind.REPS) { kind = Kind.REPS }
+                KindOption("Wiederholungen", "z. B. 3 Sätze mit je 15 Wiederholungen", kind == Kind.REPS) { kind = Kind.REPS }
                 KindOption("Halten", "z. B. 3 × 20 Sekunden", kind == Kind.HOLD) { kind = Kind.HOLD }
                 KindOption("Minuten", "Ausdauer, z. B. 10 Minuten", kind == Kind.CARDIO) { kind = Kind.CARDIO }
             }

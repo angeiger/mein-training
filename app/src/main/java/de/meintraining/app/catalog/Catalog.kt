@@ -343,6 +343,18 @@ object Catalog {
 
         // ---- Ohne Geräte -------------------------------------------------------------------------
         Exercise(
+            id = "kettlebell_march", name = "Kettlebell Marches", aka = "Marschieren mit Kettlebell", category = HANTELN,
+            primary = listOf(BAUCH, SEITL_BAUCH), secondary = listOf(QUADRIZEPS, UNTERARME),
+            steps = listOf(
+                "Stell dich aufrecht hin und halt die Kettlebell mit beiden Händen vor der Brust.",
+                "Spann den Bauch an, die Schultern bleiben locker unten.",
+                "Heb abwechselnd ein Knie bis etwa auf Hüfthöhe und setz den Fuß ruhig wieder ab.",
+                "Der Oberkörper bleibt aufrecht und still – nicht nach hinten lehnen.",
+            ),
+            tip = "Jedes Knieheben zählt als eine Wiederholung. Mit einer leichten Kettlebell beginnen und zum Festhalten neben eine Wand stellen.",
+            settings = listOf("Gewicht Kettlebell"),
+        ),
+        Exercise(
             id = "kniebeuge", name = "Kniebeuge", aka = "Squat", category = OHNE,
             primary = listOf(QUADRIZEPS, GESAESS), secondary = listOf(BEINBEUGER, UNTERER_RUECKEN),
             steps = listOf(
@@ -453,6 +465,18 @@ object Catalog {
             ),
             tip = "Die Sicherheitsleine am Kleidungsstück befestigen – sie stoppt das Band, wenn du stolperst.",
             settings = listOf("Geschwindigkeit", "Steigung"),
+        ),
+        Exercise(
+            id = "stairmaster", name = "Stairmaster", aka = "Treppensteiger", category = AUSDAUER, kind = Kind.CARDIO,
+            primary = listOf(QUADRIZEPS, GESAESS), secondary = listOf(WADEN, BEINBEUGER),
+            steps = listOf(
+                "Steig auf die unterste Stufe und halt dich locker an den Seitengriffen fest.",
+                "Starte mit einer niedrigen Stufe – die Treppe läuft dann langsam.",
+                "Steig gleichmäßig von Stufe zu Stufe, der ganze Fuß steht auf der Stufe.",
+                "Bleib aufrecht und stütz dich nicht mit dem Gewicht auf die Griffe.",
+            ),
+            tip = "Gut zum Aufwärmen: 5 bis 10 Minuten in ruhigem Tempo. Zum Anhalten die Stopp-Taste drücken und erst dann absteigen.",
+            settings = listOf("Stufe / Geschwindigkeit", "Programm"),
         ),
         Exercise(
             id = "crosstrainer", name = "Crosstrainer", aka = "Ellipsentrainer", category = AUSDAUER, kind = Kind.CARDIO,

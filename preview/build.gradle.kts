@@ -9,7 +9,7 @@ val shared = "../app/src/main/java/de/meintraining/app"
 
 sourceSets {
     main {
-        kotlin.srcDirs("src", "$shared/figure", "$shared/catalog", "$shared/musclemap")
+        kotlin.srcDirs("src", "$shared/figure", "$shared/catalog", "$shared/musclemap", "$shared/stats")
     }
 }
 

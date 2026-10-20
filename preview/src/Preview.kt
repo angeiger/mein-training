@@ -28,6 +28,7 @@ import javax.imageio.ImageIO
 fun main(args: Array<String>) {
     if (args.firstOrNull() == "debug") { debugSkeleton(args[1], args[2].toFloat()); return }
     if (args.firstOrNull() == "script") { renderScript(args[1]); return }
+    if (args.firstOrNull() == "weights") { checkWeights(); return }
     val set = args.toSet()
     if ("muscles" in set) renderMuscles()
     val ids = set - "muscles"
@@ -163,4 +164,14 @@ fun drawShapes(g: Graphics2D, shapes: List<Shape2>, b: Bounds, x0: Int, y0: Int,
         }
     }
     g.clip = clip
+}
+
+/** Prints how typed weight settings are read, to check the parser by eye. */
+fun checkWeights() {
+    val cases = listOf(
+        "Gewicht" to "40 kg", "Gewicht" to "12,5", "Gewicht" to "2 x 5 kg", "Gewicht" to "Stufe 7",
+        "Gewicht je Hantel" to "5 kg", "Gewicht Kettlebell" to "8", "Sitzhöhe" to "4", "Gewicht" to "",
+    )
+    for ((l, v) in cases) println("%-20s %-10s -> %s".format(l, v, de.meintraining.app.stats.kilograms(l, v)))
+    println(de.meintraining.app.stats.formatKilograms(3240.0) + " / " + de.meintraining.app.stats.formatKilograms(12.5))
 }

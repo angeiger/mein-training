@@ -165,10 +165,15 @@ class WorkoutViewModel(
 
     fun finish() {
         stopTimer()
+        state[KEY_ENDED] = System.currentTimeMillis()
         state[KEY_FINISHED] = true
     }
 
-    fun minutesSoFar(): Int = ((System.currentTimeMillis() - startedAt) / 60_000).toInt().coerceAtLeast(1)
+    /** Minutes from the start until "Training beenden" (or until now, while still training). */
+    fun minutesSoFar(): Int {
+        val end: Long = state[KEY_ENDED] ?: System.currentTimeMillis()
+        return ((end - startedAt) / 60_000).toInt().coerceAtLeast(1)
+    }
 
     private fun run(timer: WorkoutTimer, durationMs: Long, onEnd: () -> Unit) {
         timerJob?.cancel()
@@ -215,6 +220,7 @@ class WorkoutViewModel(
         private const val KEY_DONE = "done"
         private const val KEY_FINISHED = "finished"
         private const val KEY_STARTED = "startedAt"
+        private const val KEY_ENDED = "endedAt"
 
         fun now() = SystemClock.elapsedRealtime()
 
